@@ -3,39 +3,24 @@ name: Java CI
 on:
   push:
     branches:
-      - '*'
+      - '**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - project: fabric
-            java-version: 17
-
-          - project: forge
-            java-version: 17
-
-          - project: forge-legacy
-            java-version: 17
-
-          - project: neoforge
-            java-version: 21
-
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK ${{ matrix.java-version }}
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: ${{ matrix.java-version }}
-    - name: Build ${{ matrix.project }}
-      run: ./gradlew :${{ matrix.project }}:build
-    - name: Upload Artifact - ${{ matrix.project }}
+        java-version: 17
+    - name: Build Forge and run state regressions
+      run: ./gradlew :common:check :forge:build --configure-on-demand --no-daemon --console=plain
+    - name: Upload Forge artifact
       uses: actions/upload-artifact@v4
       with:
         # Artifact name
-        name: imblocker-${{ matrix.project }}
+        name: imblocker-forge
         # Directory containing files to upload
-        path: ${{ matrix.project }}/build/libs/*.jar
+        path: forge/build/libs/*.jar
