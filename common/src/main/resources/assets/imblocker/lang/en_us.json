@@ -26,6 +26,8 @@
   "text.autoconfig.imblocker.option.modCompatibilitySettings.sfm$showLineNumber": "SFM: Show Line Number",
   
   "text.autoconfig.imblocker.option.windowsCompatibilitySettings": "Windows Compatibility Settings",
+  "text.autoconfig.imblocker.option.windowsCompatibilitySettings.rememberScreenState": "Remember IME State per Screen",
+  "text.autoconfig.imblocker.option.windowsCompatibilitySettings.rememberScreenState.@Tooltip": "Remember open, conversion and sentence modes per screen class for this game session.\nRequires CONVERSION_STATUS and Allow ConversionStatus API. Commands still switch to English.",
   "text.autoconfig.imblocker.option.windowsCompatibilitySettings.enableConversionStatusApi": "Allow ConversionStatus API",
   "text.autoconfig.imblocker.option.windowsCompatibilitySettings.enableConversionStatusApi.@Tooltip": "The API that controls the English state.\n\u00A77If disabled, CONVERSION_STATUS English state implementation will not work.",
   "text.autoconfig.imblocker.option.windowsCompatibilitySettings.enableCursorPositionTracking": "Caret Position Tracking",

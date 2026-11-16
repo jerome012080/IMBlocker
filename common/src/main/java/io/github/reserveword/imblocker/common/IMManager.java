@@ -9,6 +9,7 @@ import io.github.reserveword.imblocker.common.gui.CaretInfo;
 import io.github.reserveword.imblocker.common.gui.FocusManager;
 import io.github.reserveword.imblocker.common.gui.FocusableObject;
 import io.github.reserveword.imblocker.common.gui.FocusableWidget;
+import io.github.reserveword.imblocker.common.gui.MinecraftScreenMonitor;
 import io.github.reserveword.imblocker.common.gui.Point;
 import io.github.reserveword.imblocker.common.gui.Rectangle;
 import io.github.reserveword.imblocker.common.gui.UniversalIMECandidateOverlay;
@@ -16,8 +17,9 @@ import io.github.reserveword.imblocker.common.gui.UniversalIMEPreeditOverlay;
 
 public final class IMManager {
 	private static final PlatformIMManager INSTANCE;
+	private static final ScreenIMStateMemory screenMemory;
 	
-	public interface PlatformIMManager {
+	public interface PlatformIMManager extends ScreenIMStateMemory.Backend {
 		
 		void setState(boolean on);
 		
@@ -49,6 +51,47 @@ public final class IMManager {
 		if(IMBlockerConfig.INSTANCE.isConversionStatusApiEnabled()) {
 			IMBlockerCore.invokeOnMainThread(() -> INSTANCE.setEnglishState(isEN));
 		}
+	}
+
+	private static boolean isScreenMemoryEnabled() {
+		return Platform.isWindows() && IMBlockerConfig.INSTANCE.isRememberScreenStateEnabled()
+				&& IMBlockerConfig.INSTANCE.isConversionStatusApiEnabled()
+				&& IMBlockerConfig.INSTANCE.getEnglishStateImpl() == EnglishStateImpl.CONVERSION_STATUS;
+	}
+
+	public static void onFocusLost() {
+		IMBlockerCore.invokeOnMainThread(() -> screenMemory.blur(isScreenMemoryEnabled()));
+	}
+
+	public static void setInputState(FocusableObject owner) {
+		boolean on = owner.getPreferredState();
+		boolean english = owner.getPreferredEnglishState();
+		boolean forced = owner.isEnglishStateForced();
+		Object screen = MinecraftScreenMonitor.getCurrentScreen();
+		Class<?> screenClass = screen == null ? null : screen.getClass();
+		if (!on) {
+			onFocusLost();
+		}
+		setState(on);
+		if (on) {
+			IMBlockerCore.invokeOnMainThread(() -> {
+				if (!screenMemory.focus(screenClass, forced, isScreenMemoryEnabled())
+						&& IMBlockerConfig.INSTANCE.isConversionStatusApiEnabled()) {
+					INSTANCE.setEnglishState(english);
+				}
+			});
+		}
+	}
+
+	public static void setInputEnglishState(FocusableObject owner) {
+		boolean english = owner.getPreferredEnglishState();
+		boolean forced = owner.isEnglishStateForced();
+		IMBlockerCore.invokeOnMainThread(() -> {
+			if (!screenMemory.command(forced, isScreenMemoryEnabled())
+					&& IMBlockerConfig.INSTANCE.isConversionStatusApiEnabled()) {
+				INSTANCE.setEnglishState(english);
+			}
+		});
 	}
 	
 	public static void setRimeAsciiMode(boolean isEN) {
@@ -167,5 +210,6 @@ public final class IMManager {
 			IMBlockerCore.LOGGER.warn("[IMBlocker] Unsupported platform, using stub");
 			INSTANCE = new IMManagerStub();
 		}
+		screenMemory = new ScreenIMStateMemory(INSTANCE);
 	}
 }

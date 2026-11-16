@@ -26,6 +26,8 @@
   "text.autoconfig.imblocker.option.modCompatibilitySettings.sfm$showLineNumber": "SFM：顯示行號",
   
   "text.autoconfig.imblocker.option.windowsCompatibilitySettings": "Windows 相容性設定",
+  "text.autoconfig.imblocker.option.windowsCompatibilitySettings.rememberScreenState": "按畫面記憶輸入法狀態",
+  "text.autoconfig.imblocker.option.windowsCompatibilitySettings.rememberScreenState.@Tooltip": "在本次遊戲中按畫面類型記憶輸入法開關、轉換和句子模式。\n需要 CONVERSION_STATUS 和轉換狀態 API；指令仍自動切換英文。",
   "text.autoconfig.imblocker.option.windowsCompatibilitySettings.enableConversionStatusApi": "使用轉換狀態API",
   "text.autoconfig.imblocker.option.windowsCompatibilitySettings.enableConversionStatusApi.@Tooltip": "用於切換中英文狀態的API\n\u00A77停用後CONVERSION_STATUS英文狀態實現將失效",
   "text.autoconfig.imblocker.option.windowsCompatibilitySettings.enableCursorPositionTracking": "插入符號位置追蹤",

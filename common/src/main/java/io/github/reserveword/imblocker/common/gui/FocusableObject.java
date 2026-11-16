@@ -1,6 +1,7 @@
 package io.github.reserveword.imblocker.common.gui;
 
 import io.github.reserveword.imblocker.common.IMBlockerConfig;
+import io.github.reserveword.imblocker.common.IMManager;
 
 /**
  * <p>This interface represents an <b>effective input entry</b> in Minecraft
@@ -42,6 +43,7 @@ public interface FocusableObject {
 	 * that because of their chaotic architectures.
 	 */
 	default void lostFocus() {
+		IMManager.onFocusLost();
 		FocusManager.setFocusOwner(null);
 	}
 	
@@ -81,6 +83,10 @@ public interface FocusableObject {
 	boolean getPreferredState();
 	
 	default boolean getPreferredEnglishState() {
+		return false;
+	}
+
+	default boolean isEnglishStateForced() {
 		return false;
 	}
 	

@@ -6,16 +6,8 @@ import io.github.reserveword.imblocker.common.gui.FocusableObject;
 
 public enum EnglishStateImpl {
 	CONVERSION_STATUS(
-			focusOwner -> {
-				boolean shouldEnableIME = focusOwner.getPreferredState();
-				IMManager.setState(shouldEnableIME);
-				if(shouldEnableIME) {
-					IMManager.setEnglishState(focusOwner.getPreferredEnglishState());
-				}
-			},
-			focusOwner -> {
-				IMManager.setEnglishState(focusOwner.getPreferredEnglishState());
-			}),
+			IMManager::setInputState,
+			IMManager::setInputEnglishState),
 	RIME(
 			focusOwner -> {
 				boolean shouldEnableIME = focusOwner.getPreferredState();

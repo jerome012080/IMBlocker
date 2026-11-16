@@ -104,6 +104,10 @@ public class IMBlockerConfig {
 		return true;
 	}
 
+	public boolean isRememberScreenStateEnabled() {
+		return true;
+	}
+
 	public boolean isCursorPositionTrackingEnabled() {
 		return true;
 	}

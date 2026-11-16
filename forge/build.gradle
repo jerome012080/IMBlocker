@@ -118,3 +118,7 @@ project.jar {
         ])
     }
 }
+
+tasks.named('check') {
+	dependsOn ':common:check'
+}

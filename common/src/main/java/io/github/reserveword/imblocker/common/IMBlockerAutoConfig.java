@@ -80,6 +80,11 @@ public class IMBlockerAutoConfig extends IMBlockerConfig implements ConfigData {
 	}
 
 	@Override
+	public boolean isRememberScreenStateEnabled() {
+		return Platform.isWindows() && windowsCompatibilitySettings.rememberScreenState;
+	}
+
+	@Override
 	public boolean isCursorPositionTrackingEnabled() {
 		return !Platform.isWindows() || windowsCompatibilitySettings.enableCursorPositionTracking;
 	}
@@ -174,6 +179,9 @@ public class IMBlockerAutoConfig extends IMBlockerConfig implements ConfigData {
 	}
 
 	static class WindowsCompatibilitySettings {
+		@ConfigEntry.Gui.Tooltip
+		boolean rememberScreenState = true;
+
 		@ConfigEntry.Gui.Tooltip
 		boolean enableConversionStatusApi = true;
 
