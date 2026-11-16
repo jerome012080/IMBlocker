@@ -60,3 +60,13 @@ java {
 project.processResources {
 	logger.info("common.pr")
 }
+
+tasks.register('screenMemoryTest', JavaExec) {
+	dependsOn testClasses
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'io.github.reserveword.imblocker.common.ScreenIMStateMemoryTest'
+}
+
+tasks.named('check') {
+	dependsOn screenMemoryTest
+}

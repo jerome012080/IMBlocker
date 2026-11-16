@@ -47,6 +47,10 @@ final class IMManagerWindows implements IMManager.PlatformIMManager {
 
 	private static native boolean ImmSetConversionStatus(WinNT.HANDLE himc, int fdwConversion, int fdwSentence);
 
+	private static native boolean ImmGetOpenStatus(WinNT.HANDLE himc);
+
+	private static native boolean ImmSetOpenStatus(WinNT.HANDLE himc, boolean open);
+
 	private static native boolean ImmGetCompositionWindow(WinNT.HANDLE himc, COMPOSITIONFORM cfr);
 
 	private static native boolean ImmSetCompositionWindow(WinNT.HANDLE himc, COMPOSITIONFORM cfr);
@@ -97,20 +101,25 @@ final class IMManagerWindows implements IMManager.PlatformIMManager {
 
 	private long lastIMStateOnTimestamp = 0;
 
-	private final SetConversionStateThread setConversionStateThread;
-	private boolean preferredEnglishState = false;
+	private ScreenIMStateMemory.State pendingState;
+	private boolean pendingRestoreOpen;
+	private WinDef.HWND windowHandle;
 
 	private Pointer originalProc;
 	private WindowProc imeListener;
 
 	public IMManagerWindows() {
-		setConversionStateThread = new SetConversionStateThread();
-		setConversionStateThread.start();
+		IMBlockerCore.registerClientTickEvent(() -> IMBlockerCore.invokeOnMainThread(this::syncEnglishState));
 	}
 
 	@Override
 	public void setState(boolean on) {
+		// A delayed conversion write must never follow a destroyed context.
+		pendingState = null;
 		WinDef.HWND hwnd = ux.GetActiveWindow();
+		if (hwnd == null) {
+			return;
+		}
 		if (on) {
 			WinNT.HANDLE oldHimc = ImmAssociateContext(hwnd, ImmCreateContext());
 			if (oldHimc != null) {
@@ -119,31 +128,77 @@ final class IMManagerWindows implements IMManager.PlatformIMManager {
 			lastIMStateOnTimestamp = System.currentTimeMillis();
 		} else {
 			WinNT.HANDLE himc = ImmAssociateContext(hwnd, null);
-			ImmDestroyContext(himc);
+			if (himc != null) {
+				ImmDestroyContext(himc);
+			}
 		}
 		IMBlockerCore.invokeOnRenderThread(() -> UniversalEnglishStateIndicator.updateIMState(on));
 	}
 
 	@Override
 	public void setEnglishState(boolean englishState) {
-		preferredEnglishState = englishState;
-		if (!setConversionStateThread.isScheduled) {
-			setConversionStateThread.awake();
-			setConversionStateThread.isScheduled = true;
+		pendingState = new ScreenIMStateMemory.State(true, englishState ? 0 : 1, 0);
+		pendingRestoreOpen = false;
+	}
+
+	@Override
+	public ScreenIMStateMemory.State captureState() {
+		WinDef.HWND hwnd = windowHandle;
+		if (hwnd == null) {
+			return null;
+		}
+		WinNT.HANDLE himc = ImmGetContext(hwnd);
+		if (himc == null) {
+			return null;
+		}
+		try {
+			if (pendingState != null) {
+				return new ScreenIMStateMemory.State(
+						pendingRestoreOpen ? pendingState.open : ImmGetOpenStatus(himc),
+						pendingState.conversion, pendingState.sentence);
+			}
+			IntByReference conversion = new IntByReference();
+			IntByReference sentence = new IntByReference();
+			if (!ImmGetConversionStatus(himc, conversion, sentence)) {
+				return null;
+			}
+			return new ScreenIMStateMemory.State(ImmGetOpenStatus(himc),
+					conversion.getValue(), sentence.getValue());
+		} finally {
+			ImmReleaseContext(hwnd, himc);
 		}
 	}
 
+	@Override
+	public void restoreState(ScreenIMStateMemory.State state) {
+		pendingState = state;
+		pendingRestoreOpen = true;
+	}
+
 	private void syncEnglishState() {
-		if(getConversionStatusCooldown() <= 0) {
+		if (pendingState != null && getConversionStatusCooldown() <= 0) {
 			WinDef.HWND hwnd = ux.GetActiveWindow();
+			if (hwnd == null) {
+				pendingState = null;
+				return;
+			}
 			WinNT.HANDLE himc = ImmGetContext(hwnd);
 			if (himc != null) {
-				ImmSetConversionStatus(himc, preferredEnglishState ? 0 : 1, 0);
+				ScreenIMStateMemory.State state = pendingState;
+				pendingState = null;
+				try {
+					if (!ImmSetConversionStatus(himc, state.conversion, state.sentence)) {
+						IMBlockerCore.LOGGER.warn("[IMBlocker] IME rejected conversion/sentence mode change");
+					}
+					if (pendingRestoreOpen && !ImmSetOpenStatus(himc, state.open)) {
+						IMBlockerCore.LOGGER.warn("[IMBlocker] IME rejected open state change");
+					}
+				} finally {
+					ImmReleaseContext(hwnd, himc);
+				}
+			} else {
+				pendingState = null;
 			}
-			ImmReleaseContext(hwnd, himc);
-			setConversionStateThread.isScheduled = false;
-		}else {
-			setConversionStateThread.awake();
 		}
 	}
 
@@ -186,6 +241,7 @@ final class IMManagerWindows implements IMManager.PlatformIMManager {
 	@Override
 	public void initializeIngameIME(long window) {
 		WinDef.HWND hwnd = new WinDef.HWND(new Pointer(GLFWNativeWin32.glfwGetWin32Window(window)));
+		windowHandle = hwnd;
 		imeListener = (_hwnd, uMsg, wParam, lParam) -> {
 			if(IMBlockerConfig.INSTANCE.isIngameIMEEnabled()) {
 				switch (uMsg) {
@@ -298,40 +354,6 @@ final class IMManagerWindows implements IMManager.PlatformIMManager {
 	private void postCandidateList(String[] selectedPageCandidates, int selectIndex) {
 		IMBlockerCore.invokeOnRenderThread(() -> UniversalIMECandidateOverlay.getInstance()
 				.candidateListUpdated(selectedPageCandidates, selectIndex));
-	}
-	
-	private class SetConversionStateThread extends Thread {
-
-		private boolean isScheduled = false;
-
-		@Override
-		public synchronized void run() {
-			while (true) {
-				await(0);
-
-				while (true) {
-					long cooldown = getConversionStatusCooldown();
-					if (cooldown <= 0) {
-						IMBlockerCore.invokeOnMainThread(() -> syncEnglishState());
-						break;
-					} else {
-						await(cooldown);
-					}
-				}
-			}
-		}
-
-		private synchronized void awake() {
-			notifyAll();
-		}
-
-		private void await(long milis) {
-			try {
-				wait(milis);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
 	}
 	
 	@FieldOrder({"dwStyle", "ptCurrentPos", "rcArea"})

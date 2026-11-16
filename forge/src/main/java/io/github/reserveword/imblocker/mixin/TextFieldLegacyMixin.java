@@ -30,6 +30,7 @@ public abstract class TextFieldLegacyMixin extends AbstractWidgetMixin implement
 			new SinglelineCursorInfo(bordered, height, displayPos, cursorPos, value);
 	
 	private boolean preferredEnglishState = getPrimaryEnglishState();
+	private boolean forcedEnglishState;
 	
 	@Unique
 	private boolean isRenderable = true;
@@ -99,7 +100,8 @@ public abstract class TextFieldLegacyMixin extends AbstractWidgetMixin implement
 
 	@Override
 	public void setPreferredEnglishState(boolean state) {
-		if (preferredEnglishState != state) {
+		if (preferredEnglishState != state || forcedEnglishState != state) {
+			forcedEnglishState = state;
 			preferredEnglishState = state;
 			if (isTrulyFocused()) {
 				updateEnglishState();
@@ -110,6 +112,11 @@ public abstract class TextFieldLegacyMixin extends AbstractWidgetMixin implement
 	@Override
 	public boolean getPreferredEnglishState() {
 		return preferredEnglishState;
+	}
+
+	@Override
+	public boolean isEnglishStateForced() {
+		return forcedEnglishState;
 	}
 
 	@Override

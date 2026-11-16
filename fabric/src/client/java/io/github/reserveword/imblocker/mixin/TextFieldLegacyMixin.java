@@ -30,6 +30,7 @@ public abstract class TextFieldLegacyMixin extends ClickableWidgetMixin implemen
 			drawsBackground, height, firstCharacterIndex, selectionStart, text);
 	
 	private boolean preferredEnglishState = getPrimaryEnglishState();
+	private boolean forcedEnglishState;
 
 	@Unique
 	private boolean isRenderable = true;
@@ -98,7 +99,8 @@ public abstract class TextFieldLegacyMixin extends ClickableWidgetMixin implemen
 	}
 	@Override
 	public void setPreferredEnglishState(boolean state) {
-		if (preferredEnglishState != state) {
+		if (preferredEnglishState != state || forcedEnglishState != state) {
+			forcedEnglishState = state;
 			preferredEnglishState = state;
 			if (isTrulyFocused()) {
 				updateEnglishState();
@@ -109,6 +111,11 @@ public abstract class TextFieldLegacyMixin extends ClickableWidgetMixin implemen
 	@Override
 	public boolean getPreferredEnglishState() {
 		return preferredEnglishState;
+	}
+
+	@Override
+	public boolean isEnglishStateForced() {
+		return forcedEnglishState;
 	}
 
 	@Override

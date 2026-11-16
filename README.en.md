@@ -17,6 +17,13 @@ That's why we need IMBlocker, which can tweak your IME depends on current input 
 - Make candidate window be able to locate text location
 - Make candidate window be displayable at full screen mode on Windows
 - Fix non-character keys leaking to the game while candidates showing on macOS/Linux
+- On Windows, remember IME open, conversion and sentence modes separately for each screen class.
+  This is enabled by default under Windows Compatibility Settings, requires
+  `CONVERSION_STATUS` with the ConversionStatus API enabled, and lasts until the game exits.
+  New screens use the existing defaults. Command input temporarily switches to English
+  without replacing the saved chat preference. Disable `rememberScreenState` to return
+  to the original behavior and clear the session history. Widgets within one screen
+  class share its preference.
 
 ## How it works
 
