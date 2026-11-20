@@ -27,6 +27,10 @@ public abstract class AbstractContainerEventHandlerMixin {
 			}
 
 			this.focused = focused;
+		} else if (focused != null && !focused.isFocused()) {
+			// A widget can drop its own focus (Refined Storage's grid search box does on Enter or an
+			// outside click) while this screen still points at it; clicking it again must re-focus it.
+			focused.setFocused(true);
 		}
 	}
 }
